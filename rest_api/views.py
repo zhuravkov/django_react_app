@@ -1,5 +1,6 @@
 
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 
 from django.shortcuts import render
 
@@ -55,7 +56,9 @@ class AuthUserView(generics.RetrieveAPIView):
     serializer_class = AuthUserSerializer
 
     def get(self, request, *args, **kwargs):
-        print(request.__dict__)
+        print(request.COOKIES)
+        print(request.__dict__['_user'])
+        print(request.META.get('HTTP_X_USERNAME'))
         # for a in request.__dict__:
         #     print(f'{a} --- {a.value}')
         return super().get(request, *args, **kwargs)
@@ -63,6 +66,37 @@ class AuthUserView(generics.RetrieveAPIView):
 
 
 
+from django.contrib.auth.models import User
+from rest_framework import authentication
+from rest_framework import exceptions
+
+
+@api_view(['GET'])
+def authenticateApi(request):
+
+    
+    username = request.__dict__['_user']
+    print(username)
+    print(request.__dict__)
+
+
+    if not username:
+        return JsonResponse({'data': 'Not Logined'})
+    
+    if username == 'AnonymousUser':
+        return JsonResponse({'data': 'Not Logined'})
+
+
+    try:
+        user = User.objects.get(username=username)
+        serializer = AuthUserSerializer(user)
+
+    except User.DoesNotExist:
+        return JsonResponse({'messages': 'You are not athorized'})
+            # raise exceptions.AuthenticationFailed('No such user')    
+    
+    return JsonResponse({'data':serializer.data, 'resultCode': 0})
+    
 
 
 

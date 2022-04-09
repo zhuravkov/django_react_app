@@ -22,19 +22,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class AuthUserSerializer(serializers.ModelSerializer):
-    email = serializers.SerializerMethodField()
+    # email = serializers.SerializerMethodField()
     login = serializers.SerializerMethodField()
 
     class Meta:
-        model = UserProfile
-        fields = ('id', 'email','login')
+        model = User
+        fields = ('id','login', 'email')
 
 
-    def get_email(self, obj):
-        return obj.user.email
+    # def get_email(self, obj):
+    #     return obj.email
 
     def get_login(self, obj):
-        return obj.user.username
+        return obj.username
 
 
 
