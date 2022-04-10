@@ -64,7 +64,6 @@ class AuthUserView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         print(request.COOKIES)
         print(request.__dict__['_user'])
-        print(request.META.get('HTTP_X_USERNAME'))
         # for a in request.__dict__:
         #     print(f'{a} --- {a.value}')
         return super().get(request, *args, **kwargs)
@@ -83,6 +82,7 @@ def authenticateApi(request):
     # колхозный способ определения пользователя из куков и сессии
     username = request.__dict__['_user']
     session_user_id = request.session['_auth_user_id']
+    print(request.session.__dict__)
     print(username)
     print(request.session['_auth_user_id'])
 
