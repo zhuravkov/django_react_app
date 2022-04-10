@@ -3,12 +3,12 @@ from django.contrib.auth.models import User
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    followed = models.BooleanField(default=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="user")
+    following = models.ManyToManyField("self", blank=True, related_name="followers", symmetrical=False)
     status = models.CharField(max_length=40)
 
     def __str__(self):
-        return f'{self.user.first_name} {self.user.last_name}'
+        return f'{self.user.username} : {self.user.first_name} {self.user.last_name}'
 
     class Meta:
         verbose_name = 'Автор'
@@ -48,3 +48,13 @@ class Post(models.Model):
 
     def __str__(self):
         return self.content
+
+
+
+# # подписка\отписка пользователя 
+# class Followers(models.Model):
+#     user = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
+#     another_user = models.ManyToManyField(UserProfile, related_name='another_user')
+
+#     def __str__(self):
+#         return self.user.user.first_name

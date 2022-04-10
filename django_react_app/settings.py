@@ -147,3 +147,10 @@ CORS_ALLOWED_ORIGINS = [
 
 
 
+#Чтобы пропускать все запросы а не только  GET
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    )
+}

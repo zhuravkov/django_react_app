@@ -2,7 +2,7 @@
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 
-from django.shortcuts import render
+from django.shortcuts import render,get_object_or_404
 
 from rest_framework import generics
 from rest_framework.decorators import api_view
@@ -10,16 +10,15 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet
 
-from rest_api.models import UserProfile, Post
-from rest_api.serializers import AuthUserSerializer, UserProfileSerializer,  PostApiSerializer
+from rest_api.models import  UserProfile, Post
+from rest_api.serializers import AuthUserSerializer, UserProfileSerializer,  PostApiSerializer, UsersSerializer
 from django.core.paginator import Paginator
 
 
 
-# class TestApiView(generics.ListAPIView):
-#     serializer_class = TestApiSerializer
-#     queryset = TestApi.objects.all()
-#
+
+
+
 class PostApiView(generics.ListCreateAPIView):
     serializer_class = PostApiSerializer
     queryset = Post.objects.all()
@@ -29,8 +28,13 @@ class PostApiView(generics.ListCreateAPIView):
 
 @api_view(['GET'])
 def userProfileApi(request):
+
     if request.method == 'GET':
+
+
         authors = UserProfile.objects.all()
+
+
         if 'page' in request.GET:
             page_num = request.GET['page']
         else:
@@ -42,8 +46,10 @@ def userProfileApi(request):
             on_page = 2
         paginator = Paginator(authors, on_page)
         page = paginator.get_page(page_num)
-        serializer = UserProfileSerializer(page,  many=True)
+        serializer = UsersSerializer(page,  many=True, context={'session_user_id': request.session['_auth_user_id']})
         return Response({'users':serializer.data, 'count': paginator.count})
+
+
 
 class UserDetailView(generics.RetrieveAPIView):
     queryset = UserProfile.objects.all()
@@ -74,10 +80,12 @@ from rest_framework import exceptions
 @api_view(['GET'])
 def authenticateApi(request):
 
-    
+    # колхозный способ определения пользователя из куков и сессии
     username = request.__dict__['_user']
+    session_user_id = request.session['_auth_user_id']
     print(username)
-    print(request.__dict__)
+    print(request.session['_auth_user_id'])
+
 
 
     if not username:
@@ -85,10 +93,10 @@ def authenticateApi(request):
     
     if username == 'AnonymousUser':
         return JsonResponse({'data': 'Not Logined'})
-
+ 
 
     try:
-        user = User.objects.get(username=username)
+        user = UserProfile.objects.get(user__id=session_user_id)
         serializer = AuthUserSerializer(user)
 
     except User.DoesNotExist:
@@ -96,7 +104,64 @@ def authenticateApi(request):
             # raise exceptions.AuthenticationFailed('No such user')    
     
     return JsonResponse({'data':serializer.data, 'resultCode': 0})
+
+
+
+
+# добавление пользователей в подписанные и удаление оттуда
+@api_view(['GET', 'POST', 'DELETE'])
+def followToggle(request, pk):
+
+    session_user_id = request.session['_auth_user_id']
+    authorObj = UserProfile.objects.get(user__id=session_user_id)
+    other_user = get_object_or_404(UserProfile, pk=pk)
+    # other_user = UserProfile.objects.get(pk=pk)
+    following = authorObj.following.all()
+    if pk != authorObj.pk:
+        if request.method == 'GET':
+            if other_user in following:
+                return JsonResponse({'status':'followed','resultCode': 0})
+            else: 
+                return JsonResponse({'status':'unfollowed','resultCode': 0})
+
+            
+
+        elif request.method == 'POST':
+            if other_user not in following:
+                authorObj.following.add(other_user)
+                return JsonResponse({'action':'followed','resultCode': 0})
+            else: 
+                return JsonResponse({'action':'already followed','resultCode': 1})
+
+
+        elif request.method == 'DELETE':
+            if other_user in following:
+                authorObj.following.remove(other_user)
+                return JsonResponse({'action':'unfollowed','resultCode': 0})
+            else: 
+                return JsonResponse({'action':'not in followed','resultCode': 1})
+
+
+    return JsonResponse({'action':'can not follow youself','resultCode': 1})
+
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
