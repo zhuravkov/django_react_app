@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="user")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="userProfile")
     following = models.ManyToManyField("self", blank=True, related_name="followers", symmetrical=False)
     status = models.CharField(max_length=40)
 

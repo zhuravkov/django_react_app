@@ -1,8 +1,10 @@
 
+import json
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 
 from django.shortcuts import render,get_object_or_404
+from django.views import View
 
 from rest_framework import generics
 from rest_framework.decorators import api_view
@@ -14,8 +16,8 @@ from rest_api.models import  UserProfile, Post
 from rest_api.serializers import AuthUserSerializer, UserProfileSerializer,  PostApiSerializer, UsersSerializer
 from django.core.paginator import Paginator
 
-
-
+from django.utils.decorators import method_decorator
+from django.contrib.auth import authenticate, login,logout
 
 
 
@@ -23,7 +25,8 @@ class PostApiView(generics.ListCreateAPIView):
     serializer_class = PostApiSerializer
     queryset = Post.objects.all()
 
-
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 
 @api_view(['GET'])
@@ -81,29 +84,27 @@ def authenticateApi(request):
 
     # колхозный способ определения пользователя из куков и сессии
     username = request.__dict__['_user']
-    session_user_id = request.session['_auth_user_id']
-    print(request.session.__dict__)
-    print(username)
-    print(request.session['_auth_user_id'])
+    try:
+        session_user_id = request.session['_auth_user_id']
+    except:
+        session_user_id = None
 
 
 
-    if not username:
+
+    if not session_user_id:
         return JsonResponse({'data': 'Not Logined'})
-    
-    if username == 'AnonymousUser':
-        return JsonResponse({'data': 'Not Logined'})
- 
 
     try:
         user = UserProfile.objects.get(user__id=session_user_id)
         serializer = AuthUserSerializer(user)
+        return JsonResponse({'data':serializer.data, 'resultCode': 0})
 
     except User.DoesNotExist:
         return JsonResponse({'messages': 'You are not athorized'})
             # raise exceptions.AuthenticationFailed('No such user')    
     
-    return JsonResponse({'data':serializer.data, 'resultCode': 0})
+    
 
 
 
@@ -144,20 +145,84 @@ def followToggle(request, pk):
 
     return JsonResponse({'action':'can not follow youself','resultCode': 1})
 
-    
+
+
+
+# Изменение своего статуса
+# API без DRF меняем статус залогиненного пользователя
+@method_decorator(csrf_exempt, name='dispatch')
+class StatusUpdateView(View):
+
+    def put (self, request):  
+        if request.session['_auth_user_id']:
+            session_user_id = request.session['_auth_user_id']
+        else:
+            session_user_id = None
+        # authorObj = UserProfile.objects.get(user__id=session_user_id)
+        
+        authorObj = get_object_or_404(UserProfile, user__id=session_user_id)
+
+        put_body = json.loads(request.body)
+        print(len(put_body.get('status')))
+        if len(put_body.get('status'))<40:
+            authorObj.status = put_body.get('status')
+            authorObj.save()
+
+            data = {
+                'message': f'status of user "{authorObj.user.username}" has been updated',
+                'resultCode': 0,
+                'status': f"{authorObj.status}"
+            }
+        else:
+            data = {
+                'message': 'status must be not more than 40 simbols',
+                'resultCode': 1,
+            }
+        return JsonResponse(data)
+
+
+@api_view(['GET'])
+def getStatus(request, id):
+
+    # колхозный способ определения пользователя из куков и сессии
+    user = get_object_or_404(UserProfile, id=id)
+
+    return JsonResponse({'status':user.status, 'resultCode': 0})
 
 
 
 
+# LOGIN
+@api_view(['POST'])
+def apiLoginView(request):
+
+    put_body = json.loads(request.body)
+
+    username = put_body.get('username')
+    password = put_body.get('password')
+    print(f'username: {username}   password: {password}')
+
+    user = authenticate(username=username, password=password)
 
 
+    if user is not None:
+        login(request, user)
+        print(user.first_name)
+        serializer = AuthUserSerializer(user.userProfile)
+        return JsonResponse({'data':serializer.data, 'resultCode': 0})
+        # Redirect to a success page.
+
+        ...
+    else:
+        # Return an 'invalid login' error message.
+        return JsonResponse({'resultCode': 1})
+
+@api_view(['get'])
+def logout_view(request):
+    logout(request)
 
 
-
-
-
-
-
+    return JsonResponse({'resultCode': 0})
 
 
 
