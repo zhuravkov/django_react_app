@@ -1,7 +1,7 @@
 from urllib import request
 from django.urls import path
 
-from .views import AuthUserView, StatusUpdateView, apiLoginView, authenticateApi, UserDetailView,  followToggle, getStatus, logout_view, userProfileApi,  PostApiView
+from .views import AuthUserView, StatusUpdateView, apiLoginView, authenticateApi, UserDetailView,  followToggle, getStatus,  userProfileApi,  PostApiView
 
 urlpatterns = [
 
@@ -16,5 +16,5 @@ urlpatterns = [
     path('api/profile/status/<int:id>', getStatus), #GET get user's status
 
     path('api/login', apiLoginView),
-    path('api/logout', logout_view),  
+    # path('api/logout', logout_view),  
 ]

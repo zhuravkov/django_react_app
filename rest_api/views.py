@@ -193,36 +193,35 @@ def getStatus(request, id):
 
 
 # LOGIN
-@api_view(['POST'])
+@api_view(['POST', 'DELETE'])
 def apiLoginView(request):
+    if request.method == 'POST':
+        put_body = json.loads(request.body)
 
-    put_body = json.loads(request.body)
+        username = put_body.get('username')
+        password = put_body.get('password')
+        print(f'username: {username}   password: {password}')
 
-    username = put_body.get('username')
-    password = put_body.get('password')
-    print(f'username: {username}   password: {password}')
-
-    user = authenticate(username=username, password=password)
+        user = authenticate(username=username, password=password)
 
 
-    if user is not None:
-        login(request, user)
-        print(user.first_name)
-        serializer = AuthUserSerializer(user.userProfile)
-        return JsonResponse({'data':serializer.data, 'resultCode': 0})
-        # Redirect to a success page.
+        if user is not None:
+            login(request, user)
+            print(user.first_name)
+            serializer = AuthUserSerializer(user.userProfile)
+            return JsonResponse({'data':serializer.data, 'resultCode': 0})
+            # Redirect to a success page.
 
-        ...
+            ...
+        else:
+            # Return an 'invalid login' error message.
+            return JsonResponse({'resultCode': 1, 'message':'No such pare login - password'})
+    
+    elif request.method == 'DELETE':
+        logout(request)
+        return JsonResponse({'resultCode': 0})
     else:
-        # Return an 'invalid login' error message.
-        return JsonResponse({'resultCode': 1})
-
-@api_view(['get'])
-def logout_view(request):
-    logout(request)
-
-
-    return JsonResponse({'resultCode': 0})
+        return JsonResponse({'resultCode': 1, 'message':'something wrong'})
 
 
 
